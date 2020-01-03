@@ -463,6 +463,7 @@ class TorrentManager(component.Component):
         add_torrent_params["paused"] = True
         add_torrent_params["auto_managed"] = False
         add_torrent_params["duplicate_is_error"] = True
+        add_torrent_params["seed_mode"] = options.get("seed_mode", False)
 
         # We need to pause the AlertManager momentarily to prevent alerts
         # for this torrent being generated before a Torrent object is created.
