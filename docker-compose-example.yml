@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  deluge:
+    image: dzhuang/docker-deluge
+    volumes:
+      - /volume1/docker/deluge/config:/config
+      - /volume1/downloads:/downloads
+    ports:
+      - 8112:8112
+      - 16884:16884
+      - 58846:58846
+      - 58946:58946
+      - 58946:58946/udp
+    restart: always
+    environment:
+      - GUID=1000
+      - PUID=0
+      - TZ=Asia/Hong_Kong
