@@ -129,6 +129,10 @@ Deluge.LoginWindow = Ext.extend(Ext.Window, {
     },
 
     onShow: function () {
-        this.passwordField.focus(true, 300);
+        // this.passwordField.focus(true, 300);
+
+        // Disable login window
+        // Ref: https://dukrat.net/124/deluge-webui-1-3-6-autologin-disable-password
+        this.onLogin()
     },
 });
