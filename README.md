@@ -1,71 +1,11 @@
-# Deluge BitTorrent Client
+# Alpine build of Deluge BitTorrent Client
 
-[![build-status]][github-ci] [![docs-status]][rtd-deluge]
+This repository builds the source code of [Deluge BitTorrent Client](https://github.com/deluge-torrent/deluge)
+into Alpine/Edge packages (see releases) that will be used to serve Deluge in Alpine Docker containers.
+Before building, we made some small changes that are not appropriate to submit to the upstream repo:
 
-Deluge is a BitTorrent client that utilizes a daemon/client model.
-It has various user interfaces available such as the GTK-UI, Web-UI and
-Console-UI. It uses [libtorrent][lt] at its core to handle the BitTorrent
-protocol.
+- **Version hack**: Because some PT sites don't support version 2.x.x, we had to modify the version number back to 1.3.15.   
 
-## Install
+- **Removed login for web UI**: Since this package is intended to be use in a Docker container, login is not necessary (at least for me personally).
 
-From [PyPi](https://pypi.org/project/deluge):
-
-    pip install deluge
-
-with all optional dependencies:
-
-    pip install deluge[all]
-
-From source code:
-
-    pip install .
-
-with all optional dependencies:
-
-    pip install .[all]
-
-See [DEPENDS](DEPENDS.md) and [Installing/Source] for dependency details.
-
-## Usage
-
-The various user-interfaces and Deluge daemon can be started with the following commands.
-
-Use the `--help` option for further command options.
-
-### Gtk UI
-
-`deluge` or `deluge-gtk`
-
-### Console UI
-
-`deluge-console`
-
-### Web UI
-
-`deluge-web`
-
-Open http://localhost:8112 with default password `deluge`.
-
-### Daemon
-
-`deluged`
-
-See the [Thinclient guide] to connect to the daemon from another computer.
-
-## Contact
-
-- [Homepage](https://deluge-torrent.org)
-- [User guide][user guide]
-- [Forum](https://forum.deluge-torrent.org)
-- [IRC Libera.Chat #deluge](irc://irc.libera.chat/deluge)
-- [Discord](https://discord.gg/nwaHSE6tqn)
-
-[user guide]: https://dev.deluge-torrent.org/wiki/UserGuide
-[thinclient guide]: https://dev.deluge-torrent.org/wiki/UserGuide/ThinClient
-[installing/source]: https://dev.deluge-torrent.org/wiki/Installing/Source
-[build-status]: https://github.com/deluge-torrent/deluge/actions/workflows/ci.yml/badge.svg?branch=develop "CI"
-[github-ci]: https://github.com/deluge-torrent/deluge/actions/workflows/ci.yml
-[docs-status]: https://readthedocs.org/projects/deluge/badge/?version=latest
-[rtd-deluge]: https://deluge.readthedocs.io/en/latest/?badge=latest "Documentation Status"
-[lt]: https://libtorrent.org
+If that's not the case for you, please consider use [linuxserver/deluge](https://hub.docker.com/r/linuxserver/deluge) docker images.
