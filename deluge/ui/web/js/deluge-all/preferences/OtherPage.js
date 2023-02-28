@@ -100,7 +100,7 @@ Deluge.preferences.Other = Ext.extend(Ext.form.FormPanel, {
         fieldset = this.add({
             xtype: 'fieldset',
             border: false,
-            title: _('Custom Deluge Agent:'),
+            title: _('Customizing user-agent and peer-id:'),
             autoHeight: true,
             labelWidth: 80,
             defaultType: 'textfield',
@@ -111,25 +111,25 @@ Deluge.preferences.Other = Ext.extend(Ext.form.FormPanel, {
             border: false,
             bodyCfg: {
                 html: _(
-                    'Use a custom Agent and corresponding Peer id. Submit with blank values will reset to the actual value'
+                    'To use a custom user-agent and corresponding peer-id, you need to restart the daemon for the changes to take effect. Submitting blank values will reset to the default value.'
                 ),
             },
         });
 
         optMan.bind(
-            'deluge_agent',
+            'custom_user_agent',
             fieldset.add({
-                name: 'deluge_agent',
-                fieldLabel: _('Agent:'),
+                name: 'custom_user_agent',
+                fieldLabel: _('User-agent:'),
                 labelSeparator: '',
                 width: 200,
             })
         );
         optMan.bind(
-            'deluge_peer_id',
+            'custom_peer_id',
             fieldset.add({
-                name: 'deluge_peer_id',
-                fieldLabel: _('Peer Id:'),
+                name: 'custom_peer_id',
+                fieldLabel: _('Peer-id:'),
                 labelSeparator: '',
                 width: 200,
             })

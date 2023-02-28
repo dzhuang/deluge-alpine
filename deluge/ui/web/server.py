@@ -660,6 +660,11 @@ class DelugeWeb(component.Component):
             'web.conf', defaults=CONFIG_DEFAULTS, file_version=2
         )
         self.config.run_converter((0, 1), 2, self._migrate_config_1_to_2)
+
+        # todo: use self.core.restart to restart the daemon
+        if self.config.get('skip_auth', None) is None:
+            self.config['skip_auth'] = CONFIG_DEFAULTS['skip_auth']
+
         self.config.register_set_function('language', self._on_language_changed)
         self.socket = None
         self.top_level = TopLevel()

@@ -136,7 +136,7 @@ Deluge.preferences.Interface = Ext.extend(Ext.form.FormPanel, {
             'skip_auth',
             fieldset.add({
                 name: 'skip_auth',
-                boxLabel: _('Skip login auth in Web UI'),
+                boxLabel: _('Skip login auth in Web UI (require restarting the daemon)'),
             })
         );
         fieldset = this.add({

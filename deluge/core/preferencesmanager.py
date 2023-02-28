@@ -35,7 +35,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def create_peer_id(version: str) -> str:
+def _create_peer_id(version: str) -> str:
     """Create a peer_id fingerprint.
 
     This creates the peer_id and modifies the release char to identify
@@ -75,13 +75,11 @@ def create_peer_id(version: str) -> str:
 
     return peer_id
 
-    # return '-DE1350-'
-
 
 DELUGE_VER = deluge.common.get_version()
 
-default_deluge_agent = f'Deluge/{DELUGE_VER} libtorrent/{LT_VERSION}'
-default_deluge_peer_id = create_peer_id(DELUGE_VER)
+DEFAULT_USER_AGENT = f'Deluge/{DELUGE_VER} libtorrent/{LT_VERSION}'
+DEFAULT_PEER_ID = _create_peer_id(DELUGE_VER)
 
 
 DEFAULT_PREFS = {
@@ -178,8 +176,8 @@ DEFAULT_PREFS = {
     'super_seeding': False,
 
     # hack version
-    'deluge_agent': default_deluge_agent,
-    'deluge_peer_id': default_deluge_peer_id
+    'custom_user_agent': DEFAULT_USER_AGENT,
+    'custom_peer_id': DEFAULT_PEER_ID
 }
 
 
@@ -187,6 +185,7 @@ class PreferencesManager(component.Component):
     def __init__(self):
         component.Component.__init__(self, 'PreferencesManager')
         self.config = deluge.configmanager.ConfigManager('core.conf', DEFAULT_PREFS)
+
         if 'proxies' in self.config:
             log.warning(
                 'Updating config file for proxy, using "peer" values to fill new "proxy" setting'
@@ -205,6 +204,13 @@ class PreferencesManager(component.Component):
             for key in DEFAULT_PREFS['proxy']:
                 if key not in self.config['proxy']:
                     self.config['proxy'][key] = DEFAULT_PREFS['proxy'][key]
+
+        # todo: use self.core.restart to restart the daemon
+        if not self.config.get('custom_user_agent', "").strip():
+            self.config['custom_user_agent'] = DEFAULT_PREFS['custom_user_agent']
+
+        if not self.config.get('custom_peer_id', "").strip():
+            self.config['custom_peer_id'] = DEFAULT_PREFS['custom_peer_id']
 
         self.core = component.get('Core')
         self.new_release_timer = None

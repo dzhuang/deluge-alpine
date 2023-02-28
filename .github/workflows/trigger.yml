@@ -1,0 +1,34 @@
+name: TRIGGER REMOTE DOCKER IMAGE BUILD
+
+on:
+  push:
+    branches:
+      - dist-patch
+    paths:
+      - '!README.md'
+      - '**/**'
+  pull_request:
+    paths:
+      - '!README.md'
+      - '**/**'
+  workflow_dispatch:
+
+
+jobs:
+  trigger-remote-build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ref: https://github.com/orgs/community/discussions/26323#discussioncomment-3343871
+      - uses: actions/github-script@v6
+        name: Trigger remote actions
+        if: github.ref == 'refs/heads/dist-patch'
+        with:
+          github-token: ${{ secrets.MY_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'dzhuang',
+              repo: 'deluge-alpine-build',
+              workflow_id: 'alpine.yml',
+              ref: 'main'
+            })
