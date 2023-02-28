@@ -105,6 +105,17 @@ Deluge.preferences.Other = Ext.extend(Ext.form.FormPanel, {
             labelWidth: 80,
             defaultType: 'textfield',
         });
+
+        fieldset.add({
+            xtype: 'panel',
+            border: false,
+            bodyCfg: {
+                html: _(
+                    'Use a custom Agent and corresponding Peer id. Submit with blank values will reset to the actual value'
+                ),
+            },
+        });
+
         optMan.bind(
             'deluge_agent',
             fieldset.add({
