@@ -96,5 +96,43 @@ Deluge.preferences.Other = Ext.extend(Ext.form.FormPanel, {
                 width: 200,
             })
         );
+
+        fieldset = this.add({
+            xtype: 'fieldset',
+            border: false,
+            title: _('Customizing user-agent and peer-id:'),
+            autoHeight: true,
+            labelWidth: 80,
+            defaultType: 'textfield',
+        });
+
+        fieldset.add({
+            xtype: 'panel',
+            border: false,
+            bodyCfg: {
+                html: _(
+                    'To use a custom user-agent and corresponding peer-id, you need to restart the daemon for the changes to take effect. Submitting blank values will reset to the default value.'
+                ),
+            },
+        });
+
+        optMan.bind(
+            'custom_user_agent',
+            fieldset.add({
+                name: 'custom_user_agent',
+                fieldLabel: _('User-agent:'),
+                labelSeparator: '',
+                width: 200,
+            })
+        );
+        optMan.bind(
+            'custom_peer_id',
+            fieldset.add({
+                name: 'custom_peer_id',
+                fieldLabel: _('Peer-id:'),
+                labelSeparator: '',
+                width: 200,
+            })
+        );
     },
 });
