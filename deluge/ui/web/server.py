@@ -39,6 +39,7 @@ CONFIG_DEFAULTS = {
     'pwd_sha1': '2ce1a410bcdcc53064129b6d950f2e9fee4edc1e',
     'session_timeout': 3600,
     'sessions': {},
+    'skip_auth': False,
     # UI Settings
     'sidebar_show_zero': False,
     'sidebar_multiple_filters': True,
@@ -63,6 +64,7 @@ UI_CONFIG_KEYS = (
     'show_session_speed',
     'base',
     'first_login',
+    'skip_auth',
 )
 
 

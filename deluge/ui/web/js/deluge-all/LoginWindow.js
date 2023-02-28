@@ -129,6 +129,11 @@ Deluge.LoginWindow = Ext.extend(Ext.Window, {
     },
 
     onShow: function () {
-        this.passwordField.focus(true, 300);
+        if (!deluge.config.skip_auth) {
+            this.passwordField.focus(true, 300);
+        }
+        else{
+            this.onLogin()
+        }
     },
 });

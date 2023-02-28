@@ -121,6 +121,27 @@ Deluge.preferences.Interface = Ext.extend(Ext.form.FormPanel, {
         fieldset = this.add({
             xtype: 'fieldset',
             border: false,
+            title: _('DANGER ZONE: Skip Auth'),
+            style: 'margin-bottom: 0px; padding-bottom: 5px; padding-top: 5px',
+            autoHeight: true,
+            labelWidth: 1,
+            defaultType: 'checkbox',
+            defaults: {
+                height: 17,
+                fieldLabel: '',
+                labelSeparator: '',
+            },
+        });
+        om.bind(
+            'skip_auth',
+            fieldset.add({
+                name: 'skip_auth',
+                boxLabel: _('Skip login auth in Web UI'),
+            })
+        );
+        fieldset = this.add({
+            xtype: 'fieldset',
+            border: false,
             title: _('Server'),
             style: 'padding-top: 5px; margin-bottom: 0px; padding-bottom: 5px',
             autoHeight: true,
