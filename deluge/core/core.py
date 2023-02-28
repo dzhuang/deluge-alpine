@@ -109,10 +109,10 @@ class Core(component.Component):
     def __init__(
         self, listen_interface=None, outgoing_interface=None, read_only_config_keys=None
     ):
+        component.Component.__init__(self, 'Core')
 
         self.eventmanager = EventManager()
         self.preferencesmanager = PreferencesManager()
-        component.Component.__init__(self, 'Core')
 
         # Start the libtorrent session.
         user_agent = self.preferencesmanager.config["deluge_agent"]
