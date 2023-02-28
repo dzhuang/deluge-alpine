@@ -119,9 +119,19 @@ class Auth(JSONComponent):
         return True
 
     def check_password(self, password):
-        # Disable login window
-        # Ref: https://dukrat.net/124/deluge-webui-1-3-6-autologin-disable-password
-        return True
+        config = self.config
+
+        if config["skip_auth"]:
+            return True
+
+        if 'pwd_sha1' not in config.config:
+            log.debug('Failed to find config login details.')
+            return False
+
+        s = hashlib.sha1()
+        s.update(config['pwd_salt'].encode('utf8'))
+        s.update(password.encode('utf8'))
+        return s.hexdigest() == config['pwd_sha1']
 
     def check_request(self, request, method=None, level=None):
         """
