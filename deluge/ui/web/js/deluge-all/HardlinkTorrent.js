@@ -33,6 +33,7 @@ Deluge.HardlinkMedia = Ext.extend(Ext.Window, {
     initComponent: function () {
         Deluge.HardlinkMedia.superclass.initComponent.call(this);
 
+        this.addButton(_('Delete HardLink'), this.onDelete, this);
         this.addButton(_('Cancel'), this.onCancel, this);
         this.addButton(_('HardLink'), this.onCreate, this);
 
@@ -73,6 +74,11 @@ Deluge.HardlinkMedia = Ext.extend(Ext.Window, {
     },
 
     onCancel: function () {
+        this.hide();
+    },
+
+    onDelete: function () {
+        deluge.client.core.delete_hardlinks(this.torrentIds);
         this.hide();
     },
 

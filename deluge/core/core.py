@@ -666,6 +666,15 @@ class Core(component.Component):
             self.torrentmanager.save_state()
 
     @export
+    def delete_hardlinks(self, torrent_ids: List[str]):
+        log.debug('Deleting hardlinks of %s', torrent_ids)
+
+        for torrent_id in torrent_ids:
+            if not self.torrentmanager.delete_hardlink(torrent_id):
+                log.warning(
+                    'Error deleting hardlink for torrent_id %s', torrent_id)
+
+    @export
     def pause_session(self) -> None:
         """Pause the entire session"""
         if not self.session.is_paused():

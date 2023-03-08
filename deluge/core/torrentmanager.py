@@ -733,6 +733,43 @@ class TorrentManager(component.Component):
         except OSError as ex:
             log.debug('Cannot Remove Folder: %s', ex)
 
+    def delete_hardlink(self, torrent_id):
+        try:
+            torrent = self.torrents[torrent_id]
+        except KeyError:
+            raise InvalidTorrentError('torrent_id %s not in session.' % torrent_id)
+
+        if not torrent.options["has_hardlinks"]:
+            log.debug('torrent_id %s has no hardlinks', torrent_id)
+            return
+
+        hard_links = torrent.find_hard_linked_path()
+
+        hard_link_folder = None
+        if hard_links:
+            hard_link_parent = os.path.join(
+                torrent.options["hardlink_media_path"], torrent.get_name())
+            if os.path.isdir(hard_link_parent):
+                hard_link_folder = hard_link_parent
+
+        for _path in hard_links:
+            try:
+                os.remove(_path)
+                log.info('Hardlink file %s removed.', _path)
+            except OSError as ex:
+                log.warning('Hardlink file %s does not exist.', _path)
+
+        torrent.options['has_hardlinks'] = False
+        torrent.options['hardlink_media'] = False
+        # torrent.options['hardlink_media_path'] = None
+
+        if hard_link_folder:
+            # we can not use torrent.remove_empty_folders because
+            # the torrent does not exist any longer
+            self.remove_empty_folder(hard_link_folder)
+
+        self.save_state()
+
     def remove(self, torrent_id, remove_data=False,
                save_state=True, remove_hard_links=False):
         """Remove a torrent from the session.

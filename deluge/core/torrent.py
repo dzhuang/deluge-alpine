@@ -516,7 +516,7 @@ class Torrent:
         self.options['move_completed_path'] = move_completed_path
 
     def set_hardlink_media(self, hardlink_media):
-        """Set whether to hardline the media files in the torrent
+        """Set whether to hardlink the media files in the torrent
         when downloading has finished.
 
         Args:
