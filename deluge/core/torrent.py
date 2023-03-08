@@ -1305,6 +1305,7 @@ class Torrent:
             return False
         return True
 
+    # todo: use this to validate
     def check_storage_move_valid_for_hardlink(self, dest, raise_error=False):
         """Check if the dest folder is on the same folder of the current
         hardlink
@@ -1447,6 +1448,7 @@ class Torrent:
 
         """
 
+        # The torrent is still downloading
         if not self.status.is_finished:
             update_state_kwargs = {}
 
@@ -1454,7 +1456,7 @@ class Torrent:
                 update_state_kwargs["hardlink_media"] = True
                 update_state_kwargs["hardlink_media_path"] = dest
 
-            assert not self.options["has_hardlinks"], "---%s-should not has hardlinks" % self.torrent_id  # noqa
+            # assert not self.options["has_hardlinks"], "---%s-should not has hardlinks" % self.torrent_id  # noqa
 
             if update_state_kwargs:
                 self.set_options(update_state_kwargs)
@@ -1483,16 +1485,67 @@ class Torrent:
                 )
                 return False
 
+        download_location = self.options['download_location']
+        source = os.path.join(download_location, self.get_name())
+        target = os.path.join(dest, os.path.split(source)[1])
+
+        # we first check if there exists hardlink for this torrent
+        has_hardlinks = self.options['has_hardlinks']
+        if has_hardlinks:
+            existing_hard_links = self.find_hard_linked_path()
+            if not existing_hard_links:
+                # has_hardlinks = False
+                self.set_options({"has_hardlinks": False})
+
+            else:
+                assert os.path.exists(self.options["hardlink_media_path"])
+                if dest == self.options["hardlink_media_path"]:
+                    log.info('dest is the same with existing hard links, '
+                             'aborted making hardlinks')
+                    return False
+
+                if os.path.isfile(source):
+                    # then only one file
+                    assert len(existing_hard_links) == 1
+
+                    actual_source = existing_hard_links[0]
+
+                    try:
+                        os.link(actual_source, target)
+                    except RuntimeError as ex:
+                        log.error(
+                            'Error create_hardlink (copy from existing) '
+                            'from file %s: %s', actual_source, ex)
+                        return False
+                    finally:
+                        log.info('ino number of source and target: %s, %s',
+                                 os.stat(source).st_ino, os.stat(target).st_ino)
+
+                else:
+                    actual_source_dir = os.path.join(
+                        self.options['hardlink_media_path'], self.get_name())
+
+                    try:
+                        shutil.move(actual_source_dir, target,
+                                    copy_function=os.link)
+                    except RuntimeError as ex:
+                        log.error('Error create_hardlink (copy from existing) '
+                                  'from folder %s: %s', actual_source_dir, ex)
+                        return False
+
+                    self.set_options(
+                        {"has_hardlinks": True,
+                         "hardlink_media": False,
+                         "hardlink_media_path": dest})
+
+                    self.update_state()
+                    return True
+
         # todo: we need to check if the dest and current download_location were
         #  on the same device. If not, existing hardlinks will fail and result in
         #  a copy? If yes, skip this check
 
-        download_location = self.options['download_location']
-        source = os.path.join(download_location, self.get_name())
-
         log.info('create_hardlink: from %s to %s', source, dest)
-
-        target = os.path.join(dest, os.path.split(source)[1])
 
         if os.path.isfile(source):
             try:
@@ -1717,7 +1770,8 @@ class Torrent:
                 os.removedirs(folder_full_path)
                 log.debug('Removed Empty Folder %s', folder_full_path)
             else:
-                for root, dirs, dummy_files in os.walk(folder_full_path, topdown=False):
+                for root, dirs, dummy_files in os.walk(folder_full_path,
+                                                       topdown=False):
                     for name in dirs:
                         try:
                             os.removedirs(os.path.join(root, name))
