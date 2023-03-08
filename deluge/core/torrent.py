@@ -1396,17 +1396,17 @@ class Torrent:
             inode_number = os.stat(source).st_ino
             log.info("inode_number is %s", inode_number)
 
+            # list all files (not recursively) in hardlink_media_path
             _files = [
                 os.path.join(hardlink_media_path, f)
                 for f in os.listdir(hardlink_media_path)
                 if os.path.isfile(os.path.join(hardlink_media_path, f))]
 
-            log.info("_files are %s", ",".join(_files))
-
             for _f in _files:
                 # This include the source file it self
                 log.info("inode number of %s is %s", _f, os.stat(_f).st_ino)
                 if os.stat(_f).st_ino == inode_number:
+                    log.info("the hardlink file is %s", ",".join(_f))
                     return [_f]
 
             return []
@@ -1435,7 +1435,7 @@ class Torrent:
                         != os.path.abspath(inodes_dict[_inode])):
                     hard_linked_files.append(file_path)
 
-        return hard_linked_files
+        return hard_linked_files, list(inodes_dict.keys())
 
     def create_hardlink(self, dest):
         """Create hardlink to a torrent's storage location
@@ -1492,7 +1492,13 @@ class Torrent:
         # we first check if there exists hardlink for this torrent
         has_hardlinks = self.options['has_hardlinks']
         if has_hardlinks:
-            existing_hard_links = self.find_hard_linked_path()
+
+            # fixme: this seems not working when the source is not a dir
+            #   but a single file
+            existing_hard_links, inodes_list = self.find_hard_linked_path()
+
+            print(f"existing: {existing_hard_links}")
+
             if not existing_hard_links:
                 # has_hardlinks = False
                 self.set_options({"has_hardlinks": False})
@@ -1509,10 +1515,15 @@ class Torrent:
                     assert len(existing_hard_links) == 1
 
                     actual_source = existing_hard_links[0]
+                    actual_target = os.path.join(
+                        dest, os.path.split(actual_source)[1])
 
                     try:
-                        shutil.move(actual_source, target,
+                        shutil.move(actual_source, actual_target,
                                     copy_function=os.link)
+                        log.info(
+                            'Create_hardlink (copy from existing) '
+                            'from file %s to %s', actual_source, actual_target)
                     except RuntimeError as ex:
                         log.error(
                             'Error create_hardlink (copy from existing) '
@@ -1526,21 +1537,47 @@ class Torrent:
                     actual_source_dir = os.path.join(
                         self.options['hardlink_media_path'], self.get_name())
 
-                    try:
-                        shutil.move(actual_source_dir, target,
-                                    copy_function=os.link)
-                    except RuntimeError as ex:
-                        log.error('Error create_hardlink (copy from existing) '
-                                  'from folder %s: %s', actual_source_dir, ex)
-                        return False
+                    files_to_remove = []
 
-                    self.set_options(
-                        {"has_hardlinks": True,
-                         "hardlink_media": False,
-                         "hardlink_media_path": dest})
+                    for dirpath, dirnames, filenames in os.walk(actual_source_dir):
+                        for filename in filenames:
+                            file_path = os.path.join(dirpath, filename)
+                            st = os.stat(file_path)
+                            if st.st_ino in inodes_list:
+                                # Construct the new directory structure in the
+                                # destination directory
+                                rel_path = os.path.relpath(
+                                    dirpath, actual_source_dir)
+                                dst_path = os.path.join(dest, rel_path, filename)
 
-                    self.update_state()
-                    return True
+                                try:
+                                    # Create hardlink in the destination directory
+                                    os.makedirs(
+                                        os.path.dirname(dst_path), exist_ok=True)
+                                    os.link(file_path, dst_path)
+                                except RuntimeError as ex:
+                                    log.error(
+                                        'Error create_hardlink (copy from existing) '
+                                        'from folder %s: %s', actual_source_dir, ex)
+                                    return False
+                                else:
+                                    files_to_remove.append(
+                                        os.path.join(
+                                            actual_source_dir, rel_path, filename))
+
+                    for f in files_to_remove:
+                        try:
+                            os.remove(f)
+                        except OSError:
+                            pass
+
+                self.set_options(
+                    {"has_hardlinks": True,
+                     "hardlink_media": False,
+                     "hardlink_media_path": dest})
+
+                self.update_state()
+                return True
 
         # todo: we need to check if the dest and current download_location were
         #  on the same device. If not, existing hardlinks will fail and result in
