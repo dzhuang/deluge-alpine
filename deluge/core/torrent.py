@@ -1511,7 +1511,8 @@ class Torrent:
                     actual_source = existing_hard_links[0]
 
                     try:
-                        os.link(actual_source, target)
+                        shutil.move(actual_source, target,
+                                    copy_function=os.link)
                     except RuntimeError as ex:
                         log.error(
                             'Error create_hardlink (copy from existing) '
