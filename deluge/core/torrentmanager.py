@@ -743,7 +743,7 @@ class TorrentManager(component.Component):
             log.debug('torrent_id %s has no hardlinks', torrent_id)
             return
 
-        hard_links, __ = torrent.find_hard_linked_path()
+        hard_links, __ = torrent.find_hard_linked_path_and_inode_list()
 
         hard_link_folder = None
         if hard_links:
@@ -803,7 +803,7 @@ class TorrentManager(component.Component):
 
         hard_links = []
         if remove_hard_links:
-            hard_links, __ = torrent.find_hard_linked_path()
+            hard_links, __ = torrent.find_hard_linked_path_and_inode_list()
 
         hard_link_folder = None
         if hard_links:

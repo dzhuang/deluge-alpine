@@ -1371,18 +1371,18 @@ class Torrent:
         self.update_state()
         return True
 
-    def find_hard_linked_path(self):
+    def find_hard_linked_path_and_inode_list(self):
         if not self.options["has_hardlinks"]:
-            return []
+            return [], []
 
         hardlink_media_path = self.options['hardlink_media_path']
         log.info("hardlink_media_path is %s", hardlink_media_path)
 
         if not hardlink_media_path:
-            return []
+            return [], []
 
         if not os.path.isdir(hardlink_media_path):
-            return []
+            return [], []
 
         download_location = self.options['download_location']
 
@@ -1391,7 +1391,7 @@ class Torrent:
 
         if os.path.isfile(source):
             if os.stat(source).st_nlink == 1:
-                return []
+                return [], []
 
             inode_number = os.stat(source).st_ino
             log.info("inode_number is %s", inode_number)
@@ -1407,14 +1407,14 @@ class Torrent:
                 log.info("inode number of %s is %s", _f, os.stat(_f).st_ino)
                 if os.stat(_f).st_ino == inode_number:
                     log.info("the hardlink file is %s", ",".join(_f))
-                    return [_f]
+                    return [_f], [inode_number]
 
-            return []
+            return [], []
 
         hardlink_media_folder = os.path.join(hardlink_media_path, self.get_name())
 
         if not os.path.isdir(hardlink_media_folder):
-            return []
+            return [], []
 
         inodes_dict = {}
 
@@ -1485,8 +1485,9 @@ class Torrent:
                 )
                 return False
 
+        torrent_folder_name = self.get_name()
         download_location = self.options['download_location']
-        source = os.path.join(download_location, self.get_name())
+        source = os.path.join(download_location, torrent_folder_name)
         target = os.path.join(dest, os.path.split(source)[1])
 
         # we first check if there exists hardlink for this torrent
@@ -1495,7 +1496,8 @@ class Torrent:
 
             # fixme: this seems not working when the source is not a dir
             #   but a single file
-            existing_hard_links, inodes_list = self.find_hard_linked_path()
+            existing_hard_links, inodes_list = (
+                self.find_hard_linked_path_and_inode_list())
 
             print(f"existing: {existing_hard_links}")
 
@@ -1535,7 +1537,7 @@ class Torrent:
 
                 else:
                     actual_source_dir = os.path.join(
-                        self.options['hardlink_media_path'], self.get_name())
+                        self.options['hardlink_media_path'], torrent_folder_name)
 
                     files_to_remove = []
 
@@ -1548,7 +1550,9 @@ class Torrent:
                                 # destination directory
                                 rel_path = os.path.relpath(
                                     dirpath, actual_source_dir)
-                                dst_path = os.path.join(dest, rel_path, filename)
+
+                                dst_path = os.path.join(
+                                    dest, torrent_folder_name, rel_path, filename)
 
                                 try:
                                     # Create hardlink in the destination directory
