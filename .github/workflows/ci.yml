@@ -58,7 +58,11 @@ jobs:
         run: |
           ulimit -c unlimited  # Enable core dumps to be captured
           python -c 'from deluge._libtorrent import lt; print(lt.__version__)';
-          catchsegv python -X dev -m pytest -v -m "not (todo or gtkui)" deluge
+          # catchsegv python -X dev -m pytest -v -m "not (todo or gtkui)" deluge
+          coverage run --branch --source=deluge -m pytest -m "not (todo or gtkui)" deluge  && coverage report -m
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
 
       - uses: actions/upload-artifact@v2
         # capture all crashes as build artifacts
@@ -96,7 +100,7 @@ jobs:
         run: |
           python -c 'import libtorrent as lt; print(lt.__version__)';
           # pytest -v -m "not (todo or gtkui or security)" deluge
-          coverage run --branch --source=deluge -m pytest -m "not (todo or gtkui or security)" deluge
+          coverage run --branch --source=deluge -m pytest -m "not (todo or gtkui)" deluge  && coverage report -m
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
