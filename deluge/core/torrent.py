@@ -1621,7 +1621,9 @@ class Torrent:
             try:
                 shutil.copytree(
                     source, target, copy_function=os.link,
-                    dirs_exist_ok=True)
+                    dirs_exist_ok=True,
+                    # ignore nfo and jpg files
+                    ignore=shutil.ignore_patterns("*.nfo", "*.jpg"))
             except RuntimeError as ex:
                 log.error('Error create_hardlink of a folder: %s', ex)
                 return False
