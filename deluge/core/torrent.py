@@ -1437,6 +1437,27 @@ class Torrent:
 
         return hard_linked_files, list(inodes_dict.keys())
 
+    @staticmethod
+    def remove_non_download_empty_folder(folder_full_path):
+        try:
+            if not os.listdir(folder_full_path):
+                os.removedirs(folder_full_path)
+                log.debug('Removed Empty Folder %s', folder_full_path)
+            else:
+                for root, dirs, dummy_files in os.walk(
+                        folder_full_path, topdown=False):
+                    for name in dirs:
+                        try:
+                            os.removedirs(os.path.join(root, name))
+                            log.debug(
+                                'Removed Empty Folder %s', os.path.join(root, name)
+                            )
+                        except OSError as ex:
+                            log.debug(ex)
+
+        except OSError as ex:
+            log.debug('Cannot Remove Folder: %s', ex)
+
     def create_hardlink(self, dest):
         """Create hardlink to a torrent's storage location
 
@@ -1574,6 +1595,8 @@ class Torrent:
                             os.remove(f)
                         except OSError:
                             pass
+
+                    self.remove_non_download_empty_folder(actual_source_dir)
 
                 self.set_options(
                     {"has_hardlinks": True,
