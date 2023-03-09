@@ -116,9 +116,9 @@ class TestCore(BaseTestCase):
             self.patch(
                 deluge.core.torrentmanager,
                 'LT_DEFAULT_ADD_TORRENT_FLAGS',
-                lt.add_torrent_params_flags_t.flag_auto_managed
-                | lt.add_torrent_params_flags_t.flag_update_subscribe
-                | lt.add_torrent_params_flags_t.flag_apply_ip_filter,
+                lt.torrent_flags.auto_managed
+                | lt.torrent_flags.update_subscribe
+                | lt.torrent_flags.apply_ip_filter,
             )
         options = {'add_paused': paused, 'auto_managed': False}
         filepath = common.get_test_data_file(filename)
@@ -188,7 +188,6 @@ class TestCore(BaseTestCase):
         assert torrent_id == info_hash
         assert not os.path.isfile(mock_mkstemp[1])
 
-    @pytest_twisted.ensureDeferred
     async def test_add_torrent_url_with_cookie(self):
         url = 'http://localhost:%d/cookie' % self.listen_port
         options = {}
@@ -201,7 +200,6 @@ class TestCore(BaseTestCase):
         result = await self.core.add_torrent_url(url, options, headers)
         assert result == info_hash
 
-    @pytest_twisted.ensureDeferred
     async def test_add_torrent_url_with_redirect(self):
         url = 'http://localhost:%d/redirect' % self.listen_port
         options = {}
@@ -210,7 +208,6 @@ class TestCore(BaseTestCase):
         result = await self.core.add_torrent_url(url, options)
         assert result == info_hash
 
-    @pytest_twisted.ensureDeferred
     async def test_add_torrent_url_with_partial_download(self):
         url = 'http://localhost:%d/partial' % self.listen_port
         options = {}
