@@ -1520,8 +1520,6 @@ class Torrent:
             existing_hard_links, inodes_list = (
                 self.find_hard_linked_path_and_inode_list())
 
-            print(f"existing: {existing_hard_links}")
-
             if not existing_hard_links:
                 # has_hardlinks = False
                 self.set_options({"has_hardlinks": False})
@@ -1621,7 +1619,9 @@ class Torrent:
 
         else:
             try:
-                shutil.copytree(source, target, copy_function=os.link)
+                shutil.copytree(
+                    source, target, copy_function=os.link,
+                    dirs_exist_ok=True)
             except RuntimeError as ex:
                 log.error('Error create_hardlink of a folder: %s', ex)
                 return False
