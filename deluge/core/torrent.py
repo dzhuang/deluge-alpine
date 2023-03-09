@@ -1552,9 +1552,6 @@ class Torrent:
                             'Error create_hardlink (copy from existing) '
                             'from file %s: %s', actual_source, ex)
                         return False
-                    finally:
-                        log.info('ino number of source and target: %s, %s',
-                                 os.stat(source).st_ino, os.stat(target).st_ino)
 
                 else:
                     actual_source_dir = os.path.join(
