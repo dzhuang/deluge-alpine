@@ -14,7 +14,7 @@ Deluge.HardlinkMedia = Ext.extend(Ext.Window, {
         config = Ext.apply(
             {
                 title: _('Hardlink Torrent Media'),
-                width: 375,
+                width: 400,
                 height: 110,
                 layout: 'fit',
                 buttonAlign: 'right',
@@ -45,7 +45,7 @@ Deluge.HardlinkMedia = Ext.extend(Ext.Window, {
             bodyStyle: 'padding: 5px',
         });
 
-        this.moveLocation = this.form.add({
+        this.hardlinkLocation = this.form.add({
             fieldLabel: _('Hardlink To Folder'),
             name: 'location',
             width: 240,
@@ -83,7 +83,7 @@ Deluge.HardlinkMedia = Ext.extend(Ext.Window, {
     },
 
     onCreate: function () {
-        var dest = this.moveLocation.getValue();
+        var dest = this.hardlinkLocation.getValue();
         deluge.client.core.create_hardlink(this.torrentIds, dest);
         this.hide();
     },

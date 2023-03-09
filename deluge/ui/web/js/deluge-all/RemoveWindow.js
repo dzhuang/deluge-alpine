@@ -15,7 +15,7 @@
 Deluge.RemoveWindow = Ext.extend(Ext.Window, {
     title: _('Remove Torrent'),
     layout: 'fit',
-    width: 350,
+    width: 550,
     height: 100,
     constrainHeader: true,
     buttonAlign: 'right',
