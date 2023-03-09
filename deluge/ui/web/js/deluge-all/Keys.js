@@ -100,6 +100,8 @@ Deluge.Keys = {
     Details: [
         'name',
         'download_location',
+        'has_hardlinks',
+        'hardlink_media_path',
         'total_size',
         'num_files',
         'message',
@@ -127,6 +129,8 @@ Deluge.Keys = {
         'prioritize_first_last',
         'move_completed',
         'move_completed_path',
+        'hardlink_media',
+        'hardlink_media_path',
         'super_seeding',
     ],
 };

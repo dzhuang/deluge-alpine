@@ -36,7 +36,7 @@ from deluge.core.authmanager import (
 from deluge.core.eventmanager import EventManager
 from deluge.core.filtermanager import FilterManager
 from deluge.core.pluginmanager import PluginManager
-from deluge.core.preferencesmanager import PreferencesManager
+from deluge.core.preferencesmanager import _create_peer_id, PreferencesManager
 from deluge.core.rpcserver import export
 from deluge.core.torrentmanager import TorrentManager
 from deluge.decorators import deprecated, maybe_coroutine
@@ -102,8 +102,6 @@ SESSION_RATES_MAPPING = {
     'upload_rate': 'net.sent_bytes',
 }
 
-DELUGE_VER = deluge.common.get_version()
-
 
 class Core(component.Component):
     def __init__(
@@ -111,9 +109,12 @@ class Core(component.Component):
     ):
         component.Component.__init__(self, 'Core')
 
+        self.eventmanager = EventManager()
+        self.preferencesmanager = PreferencesManager()
+
         # Start the libtorrent session.
-        user_agent = f'Deluge/{DELUGE_VER} libtorrent/{LT_VERSION}'
-        peer_id = self._create_peer_id(DELUGE_VER)
+        user_agent = self.preferencesmanager.config["custom_user_agent"]
+        peer_id = self.preferencesmanager.config["custom_peer_id"]
         log.debug('Starting session (peer_id: %s, user_agent: %s)', peer_id, user_agent)
         settings_pack = {
             'peer_fingerprint': peer_id,
@@ -132,8 +133,6 @@ class Core(component.Component):
         self.session.add_extension('smart_ban')
 
         # Create the components
-        self.eventmanager = EventManager()
-        self.preferencesmanager = PreferencesManager()
         self.alertmanager = AlertManager()
         self.pluginmanager = PluginManager(self)
         self.torrentmanager = TorrentManager()
@@ -247,44 +246,8 @@ class Core(component.Component):
 
     @staticmethod
     def _create_peer_id(version: str) -> str:
-        """Create a peer_id fingerprint.
-
-        This creates the peer_id and modifies the release char to identify
-        pre-release and development version. Using ``D`` for dev, daily or
-        nightly builds, ``a, b, r`` for pre-releases and ``s`` for
-        stable releases.
-
-        Examples:
-            ``--<client><client><major><minor><micro><release>--``
-            ``--DE200D--`` (development version of 2.0.0)
-            ``--DE200s--`` (stable release of v2.0.0)
-            ``--DE201b--`` (beta pre-release of v2.0.1)
-
-        Args:
-            version: The version string in PEP440 dotted notation.
-
-        Returns:
-            The formatted peer_id with Deluge prefix e.g. '--DE200s--'
-        """
-        split = deluge.common.VersionSplit(version)
-        # Fill list with zeros to length of 4 and use lt to create fingerprint.
-        version_list = split.version + [0] * (4 - len(split.version))
-        peer_id = lt.generate_fingerprint('DE', *version_list)
-
-        def substitute_chr(string, idx, char):
-            """Fast substitute single char in string."""
-            return string[:idx] + char + string[idx + 1 :]
-
-        if split.dev:
-            release_chr = 'D'
-        elif split.suffix:
-            # a (alpha), b (beta) or r (release candidate).
-            release_chr = split.suffix[0].lower()
-        else:
-            release_chr = 's'
-        peer_id = substitute_chr(peer_id, 6, release_chr)
-
-        return peer_id
+        # todo: Move the test code to another location.
+        return _create_peer_id(version)
 
     def _save_session_state(self):
         """Saves the libtorrent session state"""
@@ -562,12 +525,14 @@ class Core(component.Component):
         return self.torrentmanager.add(magnet=uri, options=options)
 
     @export
-    def remove_torrent(self, torrent_id: str, remove_data: bool) -> bool:
+    def remove_torrent(self, torrent_id: str, remove_data: bool,
+                       remove_hard_links: bool = False) -> bool:
         """Removes a single torrent from the session.
 
         Args:
             torrent_id: The torrent ID to remove.
             remove_data: If True, also remove the downloaded data.
+            remove_hard_links: If True, also remove hardlinks.
 
         Returns:
             True if removed successfully.
@@ -576,17 +541,19 @@ class Core(component.Component):
              InvalidTorrentError: If the torrent ID does not exist in the session.
         """
         log.debug('Removing torrent %s from the core.', torrent_id)
-        return self.torrentmanager.remove(torrent_id, remove_data)
+        return self.torrentmanager.remove(torrent_id, remove_data, remove_hard_links)
 
     @export
     def remove_torrents(
-        self, torrent_ids: List[str], remove_data: bool
+        self, torrent_ids: List[str], remove_data: bool,
+            remove_hard_links: bool = False
     ) -> 'defer.Deferred[List[Tuple[str, str]]]':
         """Remove multiple torrents from the session.
 
         Args:
             torrent_ids: The torrent IDs to remove.
             remove_data: If True, also remove the downloaded data.
+            remove_hard_links: If True, also remove the hardlink data.
 
         Returns:
             An empty list if no errors occurred otherwise the list contains
@@ -601,7 +568,8 @@ class Core(component.Component):
             for torrent_id in torrent_ids:
                 try:
                     self.torrentmanager.remove(
-                        torrent_id, remove_data=remove_data, save_state=False
+                        torrent_id, remove_data=remove_data, save_state=False,
+                        remove_hard_links=remove_hard_links
                     )
                 except InvalidTorrentError as ex:
                     errors.append((torrent_id, str(ex)))
@@ -681,6 +649,30 @@ class Core(component.Component):
         for torrent_id in torrent_ids:
             if not self.torrentmanager[torrent_id].move_storage(dest):
                 log.warning('Error moving torrent %s to %s', torrent_id, dest)
+
+    @export
+    def create_hardlink(self, torrent_ids: List[str], dest: str):
+        log.debug('Creating hardlinks %s to %s', torrent_ids, dest)
+
+        need_save_state = False
+        for torrent_id in torrent_ids:
+            if not self.torrentmanager[torrent_id].create_hardlink(dest):
+                log.warning(
+                    'Error creating hardlink for torrent %s to %s', torrent_id, dest)
+            else:
+                need_save_state = True
+
+        if need_save_state:
+            self.torrentmanager.save_state()
+
+    @export
+    def delete_hardlinks(self, torrent_ids: List[str]):
+        log.debug('Deleting hardlinks of %s', torrent_ids)
+
+        for torrent_id in torrent_ids:
+            if not self.torrentmanager.delete_hardlink(torrent_id):
+                log.warning(
+                    'Error deleting hardlink for torrent_id %s', torrent_id)
 
     @export
     def pause_session(self) -> None:

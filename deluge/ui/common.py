@@ -108,6 +108,18 @@ TORRENT_DATA_FIELD = {
         'name': _('Move On Completed Path'),
         'status': ['move_on_completed_path'],
     },
+    'hardlink_media': {
+        'name': _('hardlink Media'),
+        'status': ['hardlink_media'],
+    },
+    'hardlink_media_path': {
+        'name': _('Hardlink Media To Path'),
+        'status': ['hardlink_media_path'],
+    },
+    'hardlink_video_files_only': {
+        'name': _('Hardlink Video Files Only'),
+        'status': ['hardlink_video_files_only'],
+    },
     'owner': {'name': _('Owner'), 'status': ['owner']},
     'pieces': {'name': _('Pieces'), 'status': ['num_pieces', 'piece_length']},
     'seed_rank': {'name': _('Seed Rank'), 'status': ['seed_rank']},

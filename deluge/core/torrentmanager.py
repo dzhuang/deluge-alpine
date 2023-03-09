@@ -93,6 +93,9 @@ class TorrentState:  # pylint: disable=old-style-class
         remove_at_ratio=False,
         move_completed=False,
         move_completed_path=None,
+        has_hardlinks=False,
+        hardlink_media=False,
+        hardlink_media_path=None,
         magnet=None,
         owner=None,
         shared=False,
@@ -177,6 +180,10 @@ class TorrentManager(component.Component):
 
         # Keep track of torrents finished but moving storage
         self.waiting_on_finish_moving = []
+
+        # Keep track of torrents finished but hard-linking storage
+        # todo: do we need to wait for this?
+        self.waiting_on_finish_hard_linking = []
 
         # Keeps track of resume data
         self.resume_data = {}
@@ -699,13 +706,74 @@ class TorrentManager(component.Component):
 
         d.callback(torrent.torrent_id)
 
-    def remove(self, torrent_id, remove_data=False, save_state=True):
+    @staticmethod
+    def remove_empty_folder(folder_full_path):
+        try:
+            if not os.listdir(folder_full_path):
+                os.removedirs(folder_full_path)
+                log.debug('Removed Empty Folder %s', folder_full_path)
+            else:
+                for root, dirs, dummy_files in os.walk(
+                        folder_full_path, topdown=False):
+                    for name in dirs:
+                        try:
+                            os.removedirs(os.path.join(root, name))
+                            log.debug(
+                                'Removed Empty Folder %s', os.path.join(root, name)
+                            )
+                        except OSError as ex:
+                            log.debug(ex)
+
+        except OSError as ex:
+            log.debug('Cannot Remove Folder: %s', ex)
+
+    def delete_hardlink(self, torrent_id):
+        try:
+            torrent = self.torrents[torrent_id]
+        except KeyError:
+            raise InvalidTorrentError('torrent_id %s not in session.' % torrent_id)
+
+        if not torrent.options["has_hardlinks"]:
+            log.debug('torrent_id %s has no hardlinks', torrent_id)
+            return False
+
+        hard_links, __ = torrent.find_hard_linked_path_and_inode_list()
+
+        hard_link_folder = None
+        if hard_links:
+            hard_link_parent = os.path.join(
+                torrent.options["hardlink_media_path"], torrent.get_name())
+            if os.path.isdir(hard_link_parent):
+                hard_link_folder = hard_link_parent
+
+        for _path in hard_links:
+            try:
+                os.remove(_path)
+                log.info('Hardlink file %s removed.', _path)
+            except OSError as ex:
+                log.warning('Hardlink file %s does not exist.', _path)
+
+        torrent.options['has_hardlinks'] = False
+        torrent.options['hardlink_media'] = False
+        # torrent.options['hardlink_media_path'] = None
+
+        if hard_link_folder:
+            # we can not use torrent.remove_empty_folders because
+            # the torrent does not exist any longer
+            self.remove_empty_folder(hard_link_folder)
+
+        self.save_state()
+        return True
+
+    def remove(self, torrent_id, remove_data=False,
+               save_state=True, remove_hard_links=False):
         """Remove a torrent from the session.
 
         Args:
             torrent_id (str): The torrent ID to remove.
             remove_data (bool, optional): If True, remove the downloaded data, defaults to False.
             save_state (bool, optional): If True, save the session state after removal, defaults to True.
+            remove_hard_links(bool, optional): If True, remove the hard-linked assets.
 
         Returns:
             bool: True if removed successfully, False if not.
@@ -728,11 +796,34 @@ class TorrentManager(component.Component):
         # Emit the signal to the clients
         component.get('EventManager').emit(PreTorrentRemovedEvent(torrent_id))
 
+        hard_links = []
+        if remove_hard_links:
+            hard_links, __ = torrent.find_hard_linked_path_and_inode_list()
+
+        hard_link_folder = None
+        if hard_links:
+            hard_link_parent = os.path.join(
+                torrent.options["hardlink_media_path"], torrent.get_name())
+            if os.path.isdir(hard_link_parent):
+                hard_link_folder = hard_link_parent
+
         try:
             self.session.remove_torrent(torrent.handle, 1 if remove_data else 0)
         except RuntimeError as ex:
             log.warning('Error removing torrent: %s', ex)
             return False
+
+        for _path in hard_links:
+            try:
+                os.remove(_path)
+                log.info('Hardlink file %s removed.', _path)
+            except OSError as ex:
+                log.warning('Hardlink file %s does not exist.', _path)
+
+        if hard_link_folder:
+            # we can not use torrent.remove_empty_folders because
+            # the torrent does not exist any longer
+            self.remove_empty_folder(hard_link_folder)
 
         # Remove fastresume data if it is exists
         self.resume_data.pop(torrent_id, None)
@@ -928,6 +1019,9 @@ class TorrentManager(component.Component):
                 torrent.options['remove_at_ratio'],
                 torrent.options['move_completed'],
                 torrent.options['move_completed_path'],
+                torrent.options['has_hardlinks'],
+                torrent.options['hardlink_media'],
+                torrent.options['hardlink_media_path'],
                 torrent.magnet,
                 torrent.options['owner'],
                 torrent.options['shared'],
@@ -1296,6 +1390,12 @@ class TorrentManager(component.Component):
         else:
             torrent.is_finished = True
 
+        if torrent.is_finished:
+            if (not torrent.options["has_hardlinks"]
+                    and (torrent.options["hardlink_media"]
+                         and torrent.options["hardlink_media_path"])):
+                torrent.create_hardlink(torrent.options["hardlink_media_path"])
+
         # Torrent is no longer part of the queue
         try:
             self.queued_torrents.remove(torrent_id)
@@ -1415,6 +1515,11 @@ class TorrentManager(component.Component):
             self.waiting_on_finish_moving.remove(torrent_id)
             torrent.is_finished = True
             component.get('EventManager').emit(TorrentFinishedEvent(torrent_id))
+
+            # post move action: create hardlinks
+            if (torrent.options["hardlink_media"]
+                    and torrent.options["hardlink_media_path"]):
+                torrent.create_hardlink(torrent.options["hardlink_media_path"])
 
     def on_alert_storage_moved_failed(self, alert):
         """Alert handler for libtorrent storage_moved_failed_alert"""

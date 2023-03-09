@@ -120,6 +120,13 @@ class Auth(JSONComponent):
 
     def check_password(self, password):
         config = self.config
+
+        try:
+            if config["skip_auth"]:
+                return True
+        except KeyError:
+            pass
+
         if 'pwd_sha1' not in config.config:
             log.debug('Failed to find config login details.')
             return False
