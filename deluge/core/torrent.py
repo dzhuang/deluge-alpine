@@ -1406,7 +1406,7 @@ class Torrent:
                 # This include the source file it self
                 log.info("inode number of %s is %s", _f, os.stat(_f).st_ino)
                 if os.stat(_f).st_ino == inode_number:
-                    log.info("the hardlink file is %s", ",".join(_f))
+                    log.info("the hardlink file is %s", _f)
                     return [_f], [inode_number]
 
             return [], []

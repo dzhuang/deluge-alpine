@@ -741,7 +741,7 @@ class TorrentManager(component.Component):
 
         if not torrent.options["has_hardlinks"]:
             log.debug('torrent_id %s has no hardlinks', torrent_id)
-            return
+            return False
 
         hard_links, __ = torrent.find_hard_linked_path_and_inode_list()
 
@@ -769,6 +769,7 @@ class TorrentManager(component.Component):
             self.remove_empty_folder(hard_link_folder)
 
         self.save_state()
+        return True
 
     def remove(self, torrent_id, remove_data=False,
                save_state=True, remove_hard_links=False):
